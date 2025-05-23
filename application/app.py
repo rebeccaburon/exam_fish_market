@@ -87,7 +87,7 @@ if selected == "Profitabilitet af Produkter":
         st.pyplot(fig)
         # Table
         top10 = season_df[['name', 'price_kr', 'profit_kr']].sort_values(by='profit_kr', ascending=False).head(3)
-        st.markdown("### Top 3 mest profitable produkter pr sæsonen")
+        st.markdown("### De mest profitable produkter pr pågælende sæsonen")
         st.dataframe(top10.reset_index(drop=True), use_container_width=True)
 
     elif view_option == "År":
@@ -107,8 +107,22 @@ if selected == "Profitabilitet af Produkter":
 
                             
 if selected == "Transportomkostninger":
-    "hello 2"
+    st.title("📦 Transportomkostninger gennem tiden")
+    st.markdown("""
+    I denne sektion kan man se hvordan transportomkostninger påvirker fiske- og skaldyrspriser. 
+    Dette giver indblik i, om dyr transport hænger sammen med højere priser, og om dette har ændret sig over tid.
+    """)
+    st.image("../media/freight_vs_price.png", caption="Transportomkostning vs Pris", use_column_width=True)
+    st.markdown("""
+                Punkterne er meget spredte, hvilket indikerer, at der ikke er en tydelig lineær sammenhæng mellem transportomkostninger og pris. 
+                Det tyder på, at andre faktorer også spiller en væsentlig rolle for prissætningen
+                """)
+    st.subheader("📊 Gennemsnitlig transportomkostning pr. år")
 
+    avg_freight_per_year = df.groupby("year")["freight_charge_kr"].mean().reset_index()
+    avg_freight_per_year["year"] = avg_freight_per_year["year"].astype(str)
+    avg_freight_per_year.columns = ["År", "Gennemsnitlig transportomkostning (kr)"]
+    st.table(avg_freight_per_year)
 if selected == "Vægtpris over tid":
     "Hejsa"
 
