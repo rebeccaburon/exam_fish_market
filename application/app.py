@@ -86,14 +86,16 @@ if selected == "Profitabilitet af Produkter":
         plt.title(f"Profit pr. Produkt i {season}-sæsonen")
         st.pyplot(fig)
         # Table
-        top10 = season_df[['name', 'price_kr', 'profit_kr']].sort_values(by='profit_kr', ascending=False).head(3)
+        top10 = season_df[['name', 'price_kr', 'profit_kr', 'year']].copy()
+        top10['year'] = top10['year'].astype(str)
+        top10 = top10.sort_values(by='profit_kr', ascending=False).head(3)
         st.markdown("### De mest profitable produkter pr pågælende sæsonen")
         st.dataframe(top10.reset_index(drop=True), use_container_width=True)
 
     elif view_option == "År":
         year = st.selectbox("Vælg år", sorted(df["year"].unique()))
         year_df = df[df["year"] == year]
-        
+
         # Plot
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.boxplot(x="name", y="profit_kr", data=year_df, ax=ax)
@@ -101,7 +103,9 @@ if selected == "Profitabilitet af Produkter":
         plt.title(f"Profit pr. Produkt i år {year}")
         st.pyplot(fig)
         #Table
-        top10 = year_df[['name', 'price_kr', 'profit_kr', 'year']].sort_values(by='profit_kr', ascending=False).head(3)
+        top10 = year_df[['name', 'price_kr', 'profit_kr', 'year']].copy()
+        top10['year'] = top10['year'].astype(str)
+        top10 = top10.sort_values(by='profit_kr', ascending=False).head(3)        
         st.markdown("### Top 3 mest profitable produkter pr year")
         st.dataframe(top10.reset_index(drop=True), use_container_width=True)
 
@@ -123,6 +127,39 @@ if selected == "Transportomkostninger":
     avg_freight_per_year["year"] = avg_freight_per_year["year"].astype(str)
     avg_freight_per_year.columns = ["År", "Gennemsnitlig transportomkostning (kr)"]
     st.table(avg_freight_per_year)
+
 if selected == "Vægtpris over tid":
-    "Hejsa"
+    st.title("⚖️ Vægtprisen på skalddyr og fisk over tid")
+    st.markdown(""" 
+        
+    """)
+    st.image("..\media\weight_vs_price.png")
+    st.markdown(""" Figuren viser sammenhængen mellem vægt (g) og pris (kr) for fiske- og skaldyrsprodukter.
+                Punkterne er spredt over hele grafen uden en tydelig lineær tendens, hvilket indikerer, at vægten alene ikke har en stærk indflydelse på prisen. 
+                """)
+       # Select year
+    years = sorted(df['year'].unique())
+    selected_year = st.selectbox("Vælg år", years)
+
+    # Filter by year
+    year_df = df[df["year"] == selected_year].copy()
+
+    # Reconstruct 'type' from one-hot encoding (if needed)
+    if "type_shellfish" in year_df.columns and "type_fish" in year_df.columns:
+        year_df["type"] = year_df[["type_shellfish", "type_fish"]].idxmax(axis=1).str.replace("type_", "")
+    else:
+        st.error("Kolonnerne 'type_shellfish' og 'type_fish' mangler i datasættet.")
+        st.stop()
+
+    # Calculate weight price
+    year_df["vægtpris_kr_pr_g"] = year_df["price_kr"] / year_df["weight_g"]
+
+    # Group and calculate average
+    avg_weight_price = year_df.groupby("type")["vægtpris_kr_pr_g"].mean().reset_index()
+    avg_weight_price.columns = ["Type", "Gennemsnitlig vægtpris (kr/g)"]
+
+    # Show table
+    st.markdown(f"### Gennemsnitlig vægtpris for {selected_year}")
+    st.dataframe(avg_weight_price, use_container_width=True)
+    
 
