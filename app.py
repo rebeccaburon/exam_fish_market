@@ -10,12 +10,12 @@ import seaborn as sns
 from PIL import Image
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, "..", "data", "cleaned_fish_shellfish_dataset.csv")
+DATA_PATH = os.path.join(BASE_DIR, "data", "cleaned_fish_shellfish_dataset.csv")
 
 df = pd.read_csv(DATA_PATH)
 
 
-logo = Image.open('../media/logo.png')
+logo = Image.open('media/logo.png')
 
 st.set_page_config(
 
@@ -128,7 +128,7 @@ if selected == "Profitabilitet af Produkter":
     view_option = st.radio("Vælg visning", ["Diagram profit pr. år","Diagram profit pr. sæson","Sæson", "År"], horizontal=True)
 
     if view_option =="Diagram profit pr. år":
-        st.image("../media/profit_by_year_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
+        st.image("media/profit_by_year_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
         st.markdown("""
                     Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter i årene 2020 til 2024. 
                     Medianen for profit ligger nogenlunde ens hvert år, hvilket tyder på, at indtjeningen generelt har været stabil over tid.
@@ -140,7 +140,7 @@ if selected == "Profitabilitet af Produkter":
                     Alt i alt viser grafen, at profitniveauet har været stabilt, selvom der indimellem forekommer ekstreme værdier.
                     """)
     if view_option =="Diagram profit pr. sæson":
-        st.image("../media/profit_by_season_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
+        st.image("media/profit_by_season_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
         st.markdown(""" 
                     Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter fordelt på: vinter, sommer, forår og efterår.
                     Medianen ligger nogenlunde ens på tværs af sæsonerne, hvilket tyder på, at indtjeningen er stabil gennem hele året.
@@ -204,7 +204,7 @@ if selected == "Transportomkostninger":
     I denne sektion kan man se hvordan transportomkostninger påvirker fiske- og skaldyrspriser. 
     Dette giver indblik i, om dyr transport hænger sammen med højere priser, og om dette har ændret sig over tid.
     """)
-    st.image("../media/freight_charge_vs_price.png", caption="Transportomkostning vs Pris", use_column_width=True)
+    st.image("media/freight_charge_vs_price.png", caption="Transportomkostning vs Pris", use_column_width=True)
     st.markdown("""
                 Diagrammet viser sammenhængen mellem transportomkostninger og prisen på fiske- og skaldyrsprodukter. 
                 Der er ikke nogen tydelig tendens, da punkterne er spredt ud over hele grafen.
@@ -222,7 +222,7 @@ if selected == "Vægtpris over tid":
     st.markdown(""" 
         
     """)
-    st.image("..\media\weight_vs_price.png")
+    st.image("media\weight_vs_price.png")
     st.markdown(""" Diagrammet viser sammenhængen mellem vægten på fiske- og skaldyrsprodukter og deres pris. 
                 Generelt gælder det, at jo mere produktet vejer, jo højere er prisen. 
                 De fleste produkter følger denne tendens, selvom der er nogle få, der skiller sig ud
