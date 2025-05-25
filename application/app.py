@@ -28,8 +28,8 @@ initial_sidebar_state="expanded",
 with st.sidebar:
     selected = option_menu(
         "Menu",
-        ["Forside", "Profitabilitet af Produkter", "Transportomkostninger", "Vægtpris over tid"],
-        icons=["info-circle", "bar-chart", "truck", "bell"],
+        ["Forside", "Estimere pris og profit", "Profitabilitet af Produkter", "Transportomkostninger", "Vægtpris over tid"],
+        icons=["info-circle","currency-dollar", "bar-chart", "truck", "bell"],
         menu_icon="cast",
         default_index=0,
     )
@@ -50,25 +50,104 @@ if selected == "Forside":
     st.markdown(
     """
     ###
-    Dette dashboard er udviklet med formålet om at identificere de mest profitabel fiske- og skaldyrsprodukter pr. sæson. Hertil kan man også estimere prisen på fiske- og skaldyr, baseret på nøgleparametre såsom vægt og sæson. 
-    Med dette dashboard kan du se:
-    * Profitabilitet på produktet pr. sæson og år.
-    * Transportomkostningers indflydelse på prissætningen.
-    * Vægtens pris over tid.
+    Dette dashboard er udviklet med formålet om at give Fiskerikajen datadrevet indsigt i, hvordan pris og profit på fiske- og skaldyrsprodukter påvirkes af nøglefaktorer som vægt, sæson og transportomkostninger. 
+    Med udgangspunkt i en machine learning-model (linear regression) kan dashboardet: 
+    * Estimere pris og profit baseret på produktets egenskaber (vægt, år, sæson og fragtomkostning). 
+    * Identificere de mest profitable produkter pr. sæson og år. 
+    * Analysere sammenhængen mellem fragtomkostninger og pris over tid. 
+    * Vise hvordan vægten påvirker prissætningen på tværs af forskellige år og produkttyper.
 
-    Brug dashboardet som et værktøj til at træffe bedre og mere datadrevne beslutninger omkring indkøb og prissætning.
+    Brug dashboardet som et værktøj til at træffe  datadrevne beslutninger omkring indkøb og prissætning.
 
     """
 )
 
+if selected =="Estimere pris og profit":
+    st.title("📈 Estimér pris og profit")
+
+    st.markdown("Indtast oplysninger om et fiske- eller skaldyrsprodukt for at forudsige pris og profit:")
+
+    # User input
+    weight = st.number_input("Vægt (g)", min_value=0.0, value=500.0)
+    freight = st.number_input("Transportomkostning (kr)", min_value=0.0, value=10.0)
+    year = st.selectbox("År", sorted(df["year"].unique()))
+    season = st.selectbox("Sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
+
+    
+    season_data = {
+        "season_availability_Summer": 1 if season == "Sommer" else 0,
+        "season_availability_Spring": 1 if season == "Forår" else 0,
+        "season_availability_Autumn": 1 if season == "Efterår" else 0,
+        "season_availability_Winter": 1 if season == "Vinter" else 0,
+    }
+
+    # Same columns as in training set
+    features = [
+        "weight_g", "freight_charge_kr",
+        "season_availability_Summer",
+        "season_availability_Spring",
+        "season_availability_Autumn",
+        "season_availability_Winter",
+        "year"
+    ]
+
+    # Get input as DataFrame with right columns order
+    input_df = pd.DataFrame([{
+        "weight_g": weight,
+        "freight_charge_kr": freight,
+        "season_availability_Summer": season_data["season_availability_Summer"],
+        "season_availability_Spring": season_data["season_availability_Spring"],
+        "season_availability_Autumn": season_data["season_availability_Autumn"],
+        "season_availability_Winter": season_data["season_availability_Winter"],
+        "year": year
+    }])[features]
+
+    # Load modells 
+    import joblib
+    price_model = joblib.load("models/price_model.pkl")
+    profit_model = joblib.load("models/profit_model.pkl")
+
+    # predict and show results
+    if st.button("🔍 Forudsig pris og profit"):
+        pred_price = float(price_model.predict(input_df)[0])
+        pred_profit = float(profit_model.predict(input_df)[0])
+
+        st.success(f"🔹 Forventet pris: **{pred_price:.2f} kr**")
+        st.success(f"🔹 Forventet profit: **{pred_profit:.2f} kr**")
+    
 
     
 if selected == "Profitabilitet af Produkter":
     name_cols = [col for col in df.columns if col.startswith("name_")]
     df['name'] = df[name_cols].idxmax(axis=1).str.replace("name_", "")
 
-    view_option = st.radio("Vælg visning", ["Sæson", "År"], horizontal=True)
+    view_option = st.radio("Vælg visning", ["Diagram profit pr. år","Diagram profit pr. sæson","Sæson", "År"], horizontal=True)
 
+    if view_option =="Diagram profit pr. år":
+        st.image("../media/profit_by_year_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
+        st.markdown("""
+                    Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter i årene 2020 til 2024. 
+                    Medianen for profit ligger nogenlunde ens hvert år, hvilket tyder på, at indtjeningen generelt har været stabil over tid.
+                    Variationen i profit er også nogenlunde ens hvert år, hvilket viser, at indtjening ikke har ændret sig markant.
+                    Der er dog enkelte afvigelser:
+                    * I 2024 og 2022 ses nogle meget lave værdier.
+                    * I 2023 ses flere produkter med høj profit.
+                    * I 2020 er der lidt flere produkter med lav indtjening end de andre år.
+                    Alt i alt viser grafen, at profitniveauet har været stabilt, selvom der indimellem forekommer ekstreme værdier.
+                    """)
+    if view_option =="Diagram profit pr. sæson":
+        st.image("../media/profit_by_season_boxplot.png", caption="Oversigt over profit fordelt på år", use_column_width=True)
+        st.markdown(""" 
+                    Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter fordelt på: vinter, sommer, forår og efterår.
+                    Medianen ligger nogenlunde ens på tværs af sæsonerne, hvilket tyder på, at indtjeningen er stabil gennem hele året.
+                    Variationen i profit er også ensartet, hvilket viser, at der ikke er store udsving mellem sæsonerne.
+                    Der ses dog nogle få afvigelser:
+                    * Sommer og forår har lidt flere produkter med høj profit.
+                    * Vinter har nogle lave outliers.
+                    * Efterår og vinter har en lidt højere median end de andre.
+                    Overordnet viser grafen, at profitten er jævnt fordelt hen over året, og at sæsonen ikke har en stor indflydelse på indtjeningen. 
+                    Ekstreme værdier forekommer, men ændrer ikke det generelle billede af stabil profit.
+                    """)
     if view_option == "Sæson":
         season = st.selectbox("Vælg sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
         if season == "Sommer":
@@ -79,17 +158,21 @@ if selected == "Profitabilitet af Produkter":
             season_df = df[df["season_availability_Autumn"] == 1]
         else:
             season_df = df[df["season_availability_Winter"] == 1]
+
         # Plot
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.boxplot(x="name", y="profit_kr", data=season_df, ax=ax)
         plt.xticks(rotation=90)
         plt.title(f"Profit pr. Produkt i {season}-sæsonen")
         st.pyplot(fig)
+
+        
+
         # Table
         top10 = season_df[['name', 'price_kr', 'profit_kr', 'year']].copy()
         top10['year'] = top10['year'].astype(str)
         top10 = top10.sort_values(by='profit_kr', ascending=False).head(3)
-        st.markdown("### De mest profitable produkter pr pågælende sæsonen")
+        st.markdown("### De mest profitable produkter pr. pågældende sæson")
         st.dataframe(top10.reset_index(drop=True), use_container_width=True)
 
     elif view_option == "År":
@@ -102,11 +185,13 @@ if selected == "Profitabilitet af Produkter":
         plt.xticks(rotation=90)
         plt.title(f"Profit pr. Produkt i år {year}")
         st.pyplot(fig)
-        #Table
+
+
+        # Table
         top10 = year_df[['name', 'price_kr', 'profit_kr', 'year']].copy()
         top10['year'] = top10['year'].astype(str)
-        top10 = top10.sort_values(by='profit_kr', ascending=False).head(3)        
-        st.markdown("### Top 3 mest profitable produkter pr year")
+        top10 = top10.sort_values(by='profit_kr', ascending=False).head(3)
+        st.markdown("### Top 3 mest profitable produkter pr. år")
         st.dataframe(top10.reset_index(drop=True), use_container_width=True)
 
                             
@@ -116,10 +201,11 @@ if selected == "Transportomkostninger":
     I denne sektion kan man se hvordan transportomkostninger påvirker fiske- og skaldyrspriser. 
     Dette giver indblik i, om dyr transport hænger sammen med højere priser, og om dette har ændret sig over tid.
     """)
-    st.image("../media/freight_vs_price.png", caption="Transportomkostning vs Pris", use_column_width=True)
+    st.image("../media/freight_charge_vs_price.png", caption="Transportomkostning vs Pris", use_column_width=True)
     st.markdown("""
-                Punkterne er meget spredte, hvilket indikerer, at der ikke er en tydelig lineær sammenhæng mellem transportomkostninger og pris. 
-                Det tyder på, at andre faktorer også spiller en væsentlig rolle for prissætningen
+                Diagrammet viser sammenhængen mellem transportomkostninger og prisen på fiske- og skaldyrsprodukter. 
+                Der er ikke nogen tydelig tendens, da punkterne er spredt ud over hele grafen.
+                Det tyder på, at transportomkostningen ikke har stor eller direkte betydning for prisen, og at andre faktorer sandsynligvis spiller en større rolle.
                 """)
     st.subheader("📊 Gennemsnitlig transportomkostning pr. år")
 
@@ -134,8 +220,9 @@ if selected == "Vægtpris over tid":
         
     """)
     st.image("..\media\weight_vs_price.png")
-    st.markdown(""" Figuren viser sammenhængen mellem vægt (g) og pris (kr) for fiske- og skaldyrsprodukter.
-                Punkterne er spredt over hele grafen uden en tydelig lineær tendens, hvilket indikerer, at vægten alene ikke har en stærk indflydelse på prisen. 
+    st.markdown(""" Diagrammet viser sammenhængen mellem vægten på fiske- og skaldyrsprodukter og deres pris. 
+                Generelt gælder det, at jo mere produktet vejer, jo højere er prisen. 
+                De fleste produkter følger denne tendens, selvom der er nogle få, der skiller sig ud
                 """)
        # Select year
     years = sorted(df['year'].unique())
