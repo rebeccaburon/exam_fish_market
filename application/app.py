@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 
-df = pd.read_csv('..\data\cleaned_fish_shellfish_dataset.csv')
+df = pd.read_csv('data/cleaned_fish_shellfish_dataset.csv')
 
 
 logo = Image.open('../media/logo.png')
