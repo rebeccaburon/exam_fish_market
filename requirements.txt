@@ -7,4 +7,3 @@ streamlit
 streamlit-option-menu
 Pillow
 joblib
-os
