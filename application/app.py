@@ -3,12 +3,16 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 from streamlit_option_menu import option_menu
+import os
 import pandas as pd 
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 
-df = pd.read_csv('data/cleaned_fish_shellfish_dataset.csv')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "..", "data", "cleaned_fish_shellfish_dataset.csv")
+
+df = pd.read_csv(DATA_PATH)
 
 
 logo = Image.open('../media/logo.png')
@@ -145,8 +149,7 @@ if selected == "Profitabilitet af Produkter":
                     * Sommer og forår har lidt flere produkter med høj profit.
                     * Vinter har nogle lave outliers.
                     * Efterår og vinter har en lidt højere median end de andre.
-                    Overordnet viser grafen, at profitten er jævnt fordelt hen over året, og at sæsonen ikke har en stor indflydelse på indtjeningen. 
-                    Ekstreme værdier forekommer, men ændrer ikke det generelle billede af stabil profit.
+                    Overordnet viser grafen, at profitten er jævnt fordelt hen over året, og at sæsonen ikke har en stor indflydelse på indtjeningen. Ekstreme værdier forekommer, men ændrer ikke det generelle billede af stabil profit.
                     """)
     if view_option == "Sæson":
         season = st.selectbox("Vælg sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
