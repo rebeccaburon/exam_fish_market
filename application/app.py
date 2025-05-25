@@ -50,7 +50,7 @@ if selected == "Forside":
     st.markdown(
     """
     ###
-    Dette dashboard er udviklet med formålet om at identificere de mest profitabel fiske- og skaldyrsprodukter pr. sæson. Hertil kan man også estimere prisen på fiske- og skaldyr, baseret på nøgleparametre såsom vægt, længde, type og sæson. 
+    Dette dashboard er udviklet med formålet om at identificere de mest profitabel fiske- og skaldyrsprodukter pr. sæson. Hertil kan man også estimere prisen på fiske- og skaldyr, baseret på nøgleparametre såsom vægt og sæson. 
     Med dette dashboard kan du se:
     * Profitabilitet på produktet pr. sæson og år.
     * Transportomkostningers indflydelse på prissætningen.
@@ -161,5 +161,3 @@ if selected == "Vægtpris over tid":
     # Show table
     st.markdown(f"### Gennemsnitlig vægtpris for {selected_year}")
     st.dataframe(avg_weight_price, use_container_width=True)
-    
-
