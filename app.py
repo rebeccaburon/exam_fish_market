@@ -222,7 +222,7 @@ if selected == "Vægtpris over tid":
     st.markdown(""" 
         
     """)
-    st.image("media/weight_vs_price.png", use_container_width=True)
+    st.image("media\weight_vs_price.png", use_container_width=True)
     st.markdown(""" Diagrammet viser sammenhængen mellem vægten på fiske- og skaldyrsprodukter og deres pris. 
                 Generelt gælder det, at jo mere produktet vejer, jo højere er prisen. 
                 De fleste produkter følger denne tendens, selvom der er nogle få, der skiller sig ud
