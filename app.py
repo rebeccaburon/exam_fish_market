@@ -3,57 +3,80 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 import streamlit as st
 from streamlit_option_menu import option_menu
-import os
 import pandas as pd 
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 from PIL import Image
 
+# Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "cleaned_fish_shellfish_dataset.csv")
+PRICE_MODEL_PATH = os.path.join(BASE_DIR, "models", "price_model.pkl")
+PROFIT_MODEL_PATH = os.path.join(BASE_DIR, "models", "profit_model.pkl")
+CLASSIFIER_MODEL_PATH = os.path.join(BASE_DIR, "models", "profit_classifier.pkl")
 
+# Load data
 df = pd.read_csv(DATA_PATH)
-
-
 logo = Image.open('media/logo.png')
 
+# Page config
 st.set_page_config(
-
-page_title="Fiskerikajens dashboard",
-
-page_icon="🐟",
-
-layout="wide",
-
-initial_sidebar_state="expanded",
+    page_title="Fiskerikajens dashboard",
+    page_icon="🐟",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 
 with st.sidebar:
     selected = option_menu(
         "Menu",
-        ["Forside", "Estimere pris og profit", "Profitabilitet af Produkter", "Transportomkostninger", "Vægtpris over tid"],
-        icons=["info-circle","currency-dollar", "bar-chart", "truck", "bell"],
+        ["Forside", "Estimere pris og profit", "Profitabilitet af Produkter", "Vurderet indtjeningspotentiale", "Transportomkostninger", "Vægtpris over tid"],
+        icons=["info-circle", "currency-dollar", "bar-chart", "activity", "truck", "bell"],
         menu_icon="cast",
         default_index=0,
     )
 
+
 st.image(logo, width=200)
 
+# Helper for user input
+def get_user_input():
+    weight = st.number_input("Vægt (g)", min_value=0.0, value=500.0)
+    freight = st.number_input("Transportomkostning (kr)", min_value=0.0, value=10.0)
+    year = st.selectbox("År", sorted(df["year"].unique()))
+    season = st.selectbox("Sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
+
+    season_data = {
+        "season_availability_Summer": 1 if season == "Sommer" else 0,
+        "season_availability_Spring": 1 if season == "Forår" else 0,
+        "season_availability_Autumn": 1 if season == "Efterår" else 0,
+        "season_availability_Winter": 1 if season == "Vinter" else 0,
+    }
+
+    input_df = pd.DataFrame([{ 
+        "weight_g": weight,
+        "freight_charge_kr": freight,
+        "season_availability_Summer": season_data["season_availability_Summer"],
+        "season_availability_Spring": season_data["season_availability_Spring"],
+        "season_availability_Autumn": season_data["season_availability_Autumn"],
+        "season_availability_Winter": season_data["season_availability_Winter"],
+        "year": year
+    }])
+
+    return input_df
+
 if selected == "Forside":
-
-    banner = """
+    st.markdown("""
     <body style="background-color:yellow;">
-            <div style="background-color:#095c37 ;padding:10px">
-                <h2 style="color:white;text-align:center;">Velkommen til Fiskerikajens dashboard</h2>
-            </div>
+        <div style="background-color:#095c37 ;padding:10px">
+            <h2 style="color:white;text-align:center;">Velkommen til Fiskerikajens dashboard</h2>
+        </div>
     </body>
-    """
-    st.markdown(banner, unsafe_allow_html = True)
+    """, unsafe_allow_html=True)
 
-    st.markdown(
-    """
-    ###
+    st.markdown("""
     Dette dashboard er udviklet med formålet om at give Fiskerikajen datadrevet indsigt i, hvordan pris og profit på fiske- og skaldyrsprodukter påvirkes af nøglefaktorer som vægt, sæson og transportomkostninger. 
     Med udgangspunkt i en machine learning-model (linear regression) kan dashboardet: 
     * Estimere pris og profit baseret på produktets egenskaber (vægt, år, sæson og fragtomkostning). 
@@ -62,73 +85,78 @@ if selected == "Forside":
     * Vise hvordan vægten påvirker prissætningen på tværs af forskellige år og produkttyper.
 
     Brug dashboardet som et værktøj til at træffe  datadrevne beslutninger omkring indkøb og prissætning.
+    """)
 
-    """
-)
-
-if selected =="Estimere pris og profit":
-    st.title("📈 Estimér pris og profit")
-
+elif selected == "Estimere pris og profit":
+    st.info("""
+**Hvad er formålet?**  
+    Denne model bruger regressionsalgoritmer til at forudsige både pris og profit baseret på oplysninger som vægt, årstal, sæson og transportomkostninger.  
+Ved at indtaste disse værdier, kan du få et estimat på hvad produktet bør koste – og hvor meget profit det kan give.  
+Modellen er trænet på historiske data fra Fiskerikajen og giver dermed et datadrevet grundlag for bedre beslutninger i indkøb og prissætning.
+""")
+    st.title(" Estimér pris og profit")
     st.markdown("Indtast oplysninger om et fiske- eller skaldyrsprodukt for at forudsige pris og profit:")
 
-    # User input
-    weight = st.number_input("Vægt (g)", min_value=0.0, value=500.0)
-    freight = st.number_input("Transportomkostning (kr)", min_value=0.0, value=10.0)
-    year = st.selectbox("År", sorted(df["year"].unique()))
-    season = st.selectbox("Sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
+    input_df = get_user_input()
+    price_model = joblib.load(PRICE_MODEL_PATH)
+    profit_model = joblib.load(PROFIT_MODEL_PATH)
 
-    
-    season_data = {
-        "season_availability_Summer": 1 if season == "Sommer" else 0,
-        "season_availability_Spring": 1 if season == "Forår" else 0,
-        "season_availability_Autumn": 1 if season == "Efterår" else 0,
-        "season_availability_Winter": 1 if season == "Vinter" else 0,
-    }
-
-    # Same columns as in training set
-    features = [
-        "weight_g", "freight_charge_kr",
-        "season_availability_Summer",
-        "season_availability_Spring",
-        "season_availability_Autumn",
-        "season_availability_Winter",
-        "year"
-    ]
-
-    # Get input as DataFrame with right columns order
-    input_df = pd.DataFrame([{
-        "weight_g": weight,
-        "freight_charge_kr": freight,
-        "season_availability_Summer": season_data["season_availability_Summer"],
-        "season_availability_Spring": season_data["season_availability_Spring"],
-        "season_availability_Autumn": season_data["season_availability_Autumn"],
-        "season_availability_Winter": season_data["season_availability_Winter"],
-        "year": year
-    }])[features]
-
-    # Load modells 
-    import joblib
-    price_model = joblib.load("models/price_model.pkl")
-    profit_model = joblib.load("models/profit_model.pkl")
-
-    # predict and show results
-    if st.button("🔍 Forudsig pris og profit"):
+    if st.button(" Forudsig pris og profit"):
         pred_price = float(price_model.predict(input_df)[0])
         pred_profit = float(profit_model.predict(input_df)[0])
-
         st.success(f"🔹 Forventet pris: **{pred_price:.2f} kr**")
         st.success(f"🔹 Forventet profit: **{pred_profit:.2f} kr**")
+
+elif selected == "Vurderet indtjeningspotentiale":
+    st.title("🔍 Vurder indtjeningsniveau for et produkt")
+    st.info("""
+**Hvad er formålet?**  
+Denne model vurderer, om et fiske- eller skaldyrsprodukt forventes at give **lav**, **mellem** eller **høj** profit.  
+Det baseres på vægt, transportomkostning, sæson, år og type – og giver et hurtigt overblik over, hvor profitabelt produktet sandsynligvis vil være.
+""")
+    type_choice = st.selectbox("Type", ["Fisk", "Skaldyr"])
+    type_data = {
+        "type_fish": 1 if type_choice == "Fisk" else 0,
+        "type_shellfish": 1 if type_choice == "Skaldyr" else 0
+    }
+    input_df = get_user_input()
+    input_df["type_fish"] = type_data["type_fish"]
+    input_df["type_shellfish"] = type_data["type_shellfish"]
+# Reorder columns to match training input for classifier
+    season_columns = [
+    "season_availability_Summer",
+    "season_availability_Spring",
+    "season_availability_Autumn",
+    "season_availability_Winter",
+]
+    classifier_input = input_df[[
+    "weight_g",
+        "freight_charge_kr",
+        "year",
+        "type_fish",
+        "type_shellfish"
+] +  season_columns]
+
+    
+
+    clf_model = joblib.load(CLASSIFIER_MODEL_PATH)
+    prediction = clf_model.predict(classifier_input)[0]
+
+    if st.button("🔍 Forudsig profitkategori"):
+        prediction = clf_model.predict(classifier_input)[0]
+        st.success(f"🔹 Forventet indtjeningsniveau: **{prediction}**")
     
 
     
 if selected == "Profitabilitet af Produkter":
+    
     name_cols = [col for col in df.columns if col.startswith("name_")]
     df['name'] = df[name_cols].idxmax(axis=1).str.replace("name_", "")
 
     view_option = st.radio("Vælg visning", ["Diagram profit pr. år","Diagram profit pr. sæson","Sæson", "År"], horizontal=True)
 
     if view_option =="Diagram profit pr. år":
-        st.image("media/profit_by_year_boxplot.png", caption="Oversigt over profit fordelt på år", use_container_width=True)
+        st.image("media/profit_by_year_boxplot.png", caption="Oversigt over profit fordelt på år", width=800)
         st.markdown("""
                     Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter i årene 2020 til 2024. 
                     Medianen for profit ligger nogenlunde ens hvert år, hvilket tyder på, at indtjeningen generelt har været stabil over tid.
@@ -140,7 +168,8 @@ if selected == "Profitabilitet af Produkter":
                     Alt i alt viser grafen, at profitniveauet har været stabilt, selvom der indimellem forekommer ekstreme værdier.
                     """)
     if view_option =="Diagram profit pr. sæson":
-        st.image("media/profit_by_season_boxplot.png", caption="Oversigt over profit fordelt på år", use_container_width=True)
+        
+        st.image("media/profit_by_season_boxplot.png", caption="Oversigt over profit fordelt på år",  width=800)
         st.markdown(""" 
                     Dette boksplot viser fordelingen af profit (kr) for fiske- og skaldyrsprodukter fordelt på: vinter, sommer, forår og efterår.
                     Medianen ligger nogenlunde ens på tværs af sæsonerne, hvilket tyder på, at indtjeningen er stabil gennem hele året.
@@ -204,7 +233,7 @@ if selected == "Transportomkostninger":
     I denne sektion kan man se hvordan transportomkostninger påvirker fiske- og skaldyrspriser. 
     Dette giver indblik i, om dyr transport hænger sammen med højere priser, og om dette har ændret sig over tid.
     """)
-    st.image("media/freight_charge_vs_price.png", caption="Transportomkostning vs Pris", use_container_width=True)
+    st.image("media/freight_charge_vs_price.png", caption="Transportomkostning vs Pris", width=800)
     st.markdown("""
                 Diagrammet viser sammenhængen mellem transportomkostninger og prisen på fiske- og skaldyrsprodukter. 
                 Der er ikke nogen tydelig tendens, da punkterne er spredt ud over hele grafen.
@@ -222,7 +251,7 @@ if selected == "Vægtpris over tid":
     st.markdown(""" 
         
     """)
-    st.image("media/weight_vs_price.png", use_container_width=True)
+    st.image("media/weight_vs_price.png", width=800)
     st.markdown(""" Diagrammet viser sammenhængen mellem vægten på fiske- og skaldyrsprodukter og deres pris. 
                 Generelt gælder det, at jo mere produktet vejer, jo højere er prisen. 
                 De fleste produkter følger denne tendens, selvom der er nogle få, der skiller sig ud
