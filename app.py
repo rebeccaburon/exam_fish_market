@@ -42,10 +42,13 @@ with st.sidebar:
 st.image(logo, width=200)
 
 # Helper for user input
-def get_user_input():
+def get_user_input(include_year=True):
     weight = st.number_input("Vægt (g)", min_value=0.0, value=500.0)
     freight = st.number_input("Transportomkostning (kr)", min_value=0.0, value=10.0)
-    year = st.selectbox("År", sorted(df["year"].unique()))
+    if include_year:
+        year = st.selectbox("År", sorted(df["year"].unique()))
+    else:
+        year = None    
     season = st.selectbox("Sæson", ["Sommer", "Forår", "Efterår", "Vinter"])
 
     season_data = {
@@ -64,6 +67,9 @@ def get_user_input():
         "season_availability_Winter": season_data["season_availability_Winter"],
         "year": year
     }])
+    
+    if include_year:
+        input_df["year"] = year
 
     return input_df
 
@@ -112,16 +118,17 @@ elif selected == "Vurderet indtjeningspotentiale":
     st.info("""
 **Hvad er formålet?**  
 Denne model vurderer, om et fiske- eller skaldyrsprodukt forventes at give **lav**, **mellem** eller **høj** profit.  
-Det baseres på vægt, transportomkostning, sæson, år og type – og giver et hurtigt overblik over, hvor profitabelt produktet sandsynligvis vil være.
+Det baseres på vægt, transportomkostning, sæson og type – og giver et hurtigt overblik over, hvor profitabelt produktet sandsynligvis vil være.
 """)
     type_choice = st.selectbox("Type", ["Fisk", "Skaldyr"])
     type_data = {
         "type_fish": 1 if type_choice == "Fisk" else 0,
         "type_shellfish": 1 if type_choice == "Skaldyr" else 0
     }
-    input_df = get_user_input()
+    input_df = get_user_input(include_year=False)
     input_df["type_fish"] = type_data["type_fish"]
     input_df["type_shellfish"] = type_data["type_shellfish"]
+    input_df = input_df.drop(columns=["year"])
 # Reorder columns to match training input for classifier
     season_columns = [
     "season_availability_Summer",
@@ -132,7 +139,6 @@ Det baseres på vægt, transportomkostning, sæson, år og type – og giver et 
     classifier_input = input_df[[
     "weight_g",
         "freight_charge_kr",
-        "year",
         "type_fish",
         "type_shellfish"
 ] +  season_columns]
